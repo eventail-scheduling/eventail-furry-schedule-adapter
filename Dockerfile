@@ -18,7 +18,10 @@ RUN pnpm run build
 FROM base
 COPY --from=prod-deps /app/node_modules /app/node_modules
 COPY --from=build /app/dist /app
-COPY config /app/config
+# An empty named volume takes its ownership from the directory it is mounted
+# over, so that directory has to exist and belong to the runtime user first.
+# Without this a fresh volume mounts root-owned and the cache probe fails.
+RUN mkdir -p /var/cache/adapter && chown 1000:1000 /var/cache/adapter
 ENV NODE_ENV="production"
 USER 1000:1000
 

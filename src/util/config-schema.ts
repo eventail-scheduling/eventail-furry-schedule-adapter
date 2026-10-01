@@ -46,15 +46,22 @@ const positiveDurationSchema = timeUnitDurationSchema.refine(
 
 const intervalDescription = "An ISO 8601 duration in time units only.";
 
-/**
- * openid-client refuses plaintext unless told otherwise, and a loopback host
- * is the one case where http is a development provider rather than a mistake.
- */
-export const isLoopback = (value: string): boolean =>
+const isLoopback = (value: string): boolean =>
     ["localhost", "127.0.0.1", "[::1]", "::1"].includes(new URL(value).hostname);
 
-const isSecureOrigin = (url: URL): boolean =>
-    url.protocol === "https:" || (url.protocol === "http:" && isLoopback(url.href));
+/**
+ * Whether openid-client has to be told to accept this issuer.
+ *
+ * Answers false for an https issuer whatever else is set: the flag it gates
+ * disables the HTTPS rule for every later request too, including the token
+ * endpoint that carries the client secret, so it is never worth passing for
+ * an issuer that does not need it.
+ */
+export const issuerNeedsInsecureRequests = (issuer: string, allowInsecure: boolean): boolean =>
+    new URL(issuer).protocol !== "https:" && (isLoopback(issuer) || allowInsecure);
+
+const issuerIsReachable = (issuer: string, allowInsecure: boolean): boolean =>
+    new URL(issuer).protocol === "https:" || isLoopback(issuer) || allowInsecure;
 
 /**
  * The pattern the schema names for a localized key, which it does not enforce.
@@ -96,32 +103,24 @@ export const configSchema = z.object({
     eventail: z
         .object({
             baseUrl: z
-                .url()
-                .refine(
-                    (value) => isSecureOrigin(new URL(value)),
-                    "Must be https, or http only on a loopback host",
-                )
+                .url({ protocol: /^https?$/ })
                 .transform((value) => value.replace(/\/+$/, ""))
                 .meta({
                     description:
                         "The root of the eventail API. A trailing slash is ignored. The access " +
-                        "token is sent here, so plaintext is refused off loopback.",
+                        "token is sent here, so reach the API over https or over a network you " +
+                        "trust. Plaintext is not refused, because an in-cluster address is the " +
+                        "normal case and no rule separates one from a public host.",
                 }),
             auth: z
                 .object({
-                    issuer: z
-                        .url()
-                        .refine(
-                            (value) => isSecureOrigin(new URL(value)),
-                            "Must be https, or http only on a loopback host",
-                        )
-                        .meta({
-                            description:
-                                "The OpenID Connect issuer to mint access tokens from. Its " +
-                                "discovery document is fetched at startup, so the adapter does " +
-                                "not start while the issuer is unreachable, and the document " +
-                                "must name this same issuer back.",
-                        }),
+                    issuer: z.url({ protocol: /^https?$/ }).meta({
+                        description:
+                            "The OpenID Connect issuer to mint access tokens from. Its " +
+                            "discovery document is fetched at startup, so the adapter does " +
+                            "not start while the issuer is unreachable, and the document " +
+                            "must name this same issuer back.",
+                    }),
                     clientId: z.string().min(1).meta({
                         description: "The client credentials client the adapter authenticates as.",
                     }),
@@ -154,6 +153,17 @@ export const configSchema = z.object({
                                 "on the client instead, as Keycloak does, needs it left out. " +
                                 "Either way it has to end up matching the API's jwt.audience.",
                         }),
+                    allowInsecureIssuer: z
+                        .boolean()
+                        .default(false)
+                        .meta({
+                            description:
+                                "Accept a plaintext issuer that is not on loopback. Needed " +
+                                "only for a provider reached inside a cluster or a compose " +
+                                "network, where there is no TLS to terminate. It also tells " +
+                                "openid-client to drop its HTTPS rule for every request to " +
+                                "that provider, including the one carrying the client secret.",
+                        }),
                     tokenCachePath: z
                         .string()
                         .min(1)
@@ -166,8 +176,12 @@ export const configSchema = z.object({
                                 "is keyed by the credentials, so editing other settings " +
                                 "reuses it. The adapter refuses to start if it cannot write " +
                                 "here.",
-                            examples: ["/var/cache/eventail-adapter/token.json"],
+                            examples: ["/var/cache/adapter/token.json"],
                         }),
+                })
+                .refine((auth) => issuerIsReachable(auth.issuer, auth.allowInsecureIssuer), {
+                    error: "A plaintext issuer off loopback needs allowInsecureIssuer",
+                    path: ["issuer"],
                 })
                 .meta({
                     description:

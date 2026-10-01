@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { configSchema, documentKeyPattern } from "../../src/util/config-schema.js";
+import {
+    configSchema,
+    documentKeyPattern,
+    issuerNeedsInsecureRequests,
+} from "../../src/util/config-schema.js";
 
 const parse = (language: string) =>
     configSchema.safeParse({
@@ -56,17 +60,16 @@ describe("configSchema baseUrl", () => {
         assert.equal(config.data?.eventail.baseUrl, "http://localhost:12001");
     });
 
-    it("refuses plaintext, which would put the access token on the wire", () => {
-        assert.equal(parseBaseUrl("http://api.example.com").success, false);
+    it("accepts a plaintext host, which is how the API is reached in a cluster", () => {
+        // Deliberately unguarded, unlike the issuer: every working topology
+        // reaches the API over plaintext on an internal address, and no rule
+        // separates `api.eventail.svc.cluster.local` from a public host.
+        assert.equal(parseBaseUrl("http://api:3000").success, true);
+        assert.equal(parseBaseUrl("http://api.eventail.svc.cluster.local").success, true);
         assert.equal(parseBaseUrl("https://api.example.com").success, true);
     });
 
-    it("allows plaintext on a loopback host, where it is a development API", () => {
-        assert.equal(parseBaseUrl("http://localhost:12001").success, true);
-        assert.equal(parseBaseUrl("http://127.0.0.1:12001").success, true);
-    });
-
-    it("refuses a scheme that is not http at all", () => {
+    it("still refuses a scheme that is not http at all", () => {
         assert.equal(parseBaseUrl("file:///etc/passwd").success, false);
     });
 });
@@ -94,19 +97,24 @@ const parseBaseUrl = (baseUrl: string) =>
         venue: { id: "main", name: "Test Hotel" },
     });
 
-const parseIssuer = (issuer: string) =>
+const parseIssuer = (issuer: string, allowInsecureIssuer?: boolean) =>
     configSchema.safeParse({
         eventail: {
             baseUrl: "http://localhost:12001",
             editionId: "01a00548-4998-72d4-ad19-52975e052880",
-            auth: { issuer, clientId: "c", clientSecret: "s" },
+            auth: {
+                issuer,
+                clientId: "c",
+                clientSecret: "s",
+                ...(allowInsecureIssuer !== undefined && { allowInsecureIssuer }),
+            },
         },
         document: { language: "en" },
         venue: { id: "main", name: "Test Hotel" },
     });
 
 describe("configSchema issuer", () => {
-    it("refuses plaintext, which would put the client secret on the wire", () => {
+    it("refuses a plaintext issuer off loopback", () => {
         assert.equal(parseIssuer("http://idp.example.com").success, false);
         assert.equal(parseIssuer("https://idp.example.com").success, true);
     });
@@ -116,9 +124,15 @@ describe("configSchema issuer", () => {
         assert.equal(parseIssuer("http://127.0.0.1:12003/default").success, true);
     });
 
+    it("allows a plaintext issuer off loopback once it is opted into", () => {
+        // A provider reached inside a cluster has no TLS to terminate.
+        assert.equal(parseIssuer("http://oidc:8080/default", true).success, true);
+    });
+
     it("refuses a scheme that is not http at all", () => {
         assert.equal(parseIssuer("file:///etc/passwd").success, false);
         assert.equal(parseIssuer("ftp://idp.example.com").success, false);
+        assert.equal(parseIssuer("file:///etc/passwd", true).success, false);
     });
 
     it("keeps the issuer exactly as written", () => {
@@ -128,6 +142,22 @@ describe("configSchema issuer", () => {
             parseIssuer("https://idp.example.com/").data?.eventail.auth.issuer,
             "https://idp.example.com/",
         );
+    });
+});
+
+describe("issuerNeedsInsecureRequests", () => {
+    it("is false for an https issuer however it is opted into", () => {
+        // The flag drops openid-client's HTTPS rule for every later request,
+        // including the one carrying the client secret, so an issuer that
+        // does not need it must never get it.
+        assert.equal(issuerNeedsInsecureRequests("https://idp.example.com", true), false);
+        assert.equal(issuerNeedsInsecureRequests("https://idp.example.com", false), false);
+    });
+
+    it("is true for plaintext on loopback or once opted into, and false otherwise", () => {
+        assert.equal(issuerNeedsInsecureRequests("http://localhost:12003", false), true);
+        assert.equal(issuerNeedsInsecureRequests("http://oidc:8080", true), true);
+        assert.equal(issuerNeedsInsecureRequests("http://oidc:8080", false), false);
     });
 });
 

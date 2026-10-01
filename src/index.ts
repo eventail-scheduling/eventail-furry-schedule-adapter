@@ -6,7 +6,7 @@ import { createEventailClient } from "./eventail/client.js";
 import { createRefresher } from "./refresher.js";
 import { createRouter } from "./server.js";
 import { appConfig } from "./util/app-config.js";
-import { documentKeyPattern, isLoopback } from "./util/config-schema.js";
+import { documentKeyPattern, issuerNeedsInsecureRequests } from "./util/config-schema.js";
 import { logger } from "./util/logger.js";
 import { version } from "./util/version.js";
 
@@ -37,7 +37,12 @@ const configuration = await discovery(
         // Carried onto the Configuration, so it bounds every later token
         // request too rather than leaving them on the library's own default.
         timeout: appConfig.eventail.requestTimeout.total("seconds"),
-        execute: isLoopback(appConfig.eventail.auth.issuer) ? [allowInsecureRequests] : [],
+        execute: issuerNeedsInsecureRequests(
+            appConfig.eventail.auth.issuer,
+            appConfig.eventail.auth.allowInsecureIssuer,
+        )
+            ? [allowInsecureRequests]
+            : [],
     },
 );
 
