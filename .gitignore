@@ -1,0 +1,6 @@
+/node_modules
+/dist
+config.schema.json
+/tsconfig.tsbuildinfo
+/config/local.toml
+/config/local-*.toml

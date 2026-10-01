@@ -1,0 +1,48 @@
+name: Commits
+
+on:
+  pull_request:
+    # A title can change after the pull request opens, and the squash takes
+    # whatever it says at merge time.
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+
+# Every title edit carries the same head commit, so two runs would otherwise
+# race under one check name.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  commitlint:
+    runs-on: ubuntu-latest
+    # Editing a merged pull request checks out the base branch rather than the
+    # merge ref, which leaves the head commit in no fetched ref.
+    if: github.event.pull_request.state == 'open'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 26
+          cache: pnpm
+
+      - run: pnpm install
+
+      # A squash merge takes the title as the commit message, so it has to
+      # pass the same rules as the commits do.
+      - name: Check the pull request title
+        run: echo "$PR_TITLE" | pnpm exec commitlint
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+
+      # The local hook can be skipped with --no-verify.
+      - name: Check the commits
+        run: >-
+          pnpm exec commitlint
+          --from ${{ github.event.pull_request.base.sha }}
+          --to ${{ github.event.pull_request.head.sha }}

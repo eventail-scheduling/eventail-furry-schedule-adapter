@@ -1,0 +1,23 @@
+port = 12020
+
+[log]
+level = "debug"
+
+[eventail]
+baseUrl = "http://localhost:12001"
+editionId = "01a00548-4998-72d4-ad19-52975e052880"
+
+# The API's mock provider. Its `integration` client maps to sub=integration,
+# which is what that deployment's integrationPredicate matches.
+[eventail.auth]
+issuer = "http://localhost:12003/default"
+clientId = "integration"
+clientSecret = "development"
+audience = "eventail"
+
+[document]
+language = "en"
+
+[venue]
+id = "main"
+name = "Development Venue"
