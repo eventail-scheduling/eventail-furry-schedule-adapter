@@ -1,5 +1,5 @@
 {
-   "version": "0.0.0",
+   "version": "0.1.0",
    "name": "@eventail/eventail-furry-schedule-adapter",
    "description": "Publishes an eventail schedule in the Furry Schedule Schema format",
    "private": true,
