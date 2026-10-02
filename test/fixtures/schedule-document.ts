@@ -53,10 +53,23 @@ const session = (id: string, options: SessionOptions) => ({
     },
 });
 
-const location = (id: string, name: string, externalKey: string, position: number) => ({
+const location = (
+    id: string,
+    name: string,
+    externalKey: string,
+    position: number,
+    venueId: string,
+) => ({
     type: "location",
     id,
     attributes: { name, externalKey, position },
+    relationships: { venue: { data: { type: "venue", id: venueId } } },
+});
+
+const venue = (id: string, name: string, position: number, address: string | null = null) => ({
+    type: "venue",
+    id,
+    attributes: { name, address, externalKey: null, position },
 });
 
 const host = (id: string, displayName: string, avatar: Record<string, unknown> | null = null) => ({
@@ -185,9 +198,12 @@ export const scheduleDocument = {
             typeId: "type-2",
             trackId: "track-1",
         }),
-        location("room-1", "Main Stage", "main", 1),
-        location("room-2", "Panel Room", "panels", 0),
-        location("room-3", "Staff Room", "staff", 2),
+        location("room-1", "Main Stage", "main", 1, "venue-1"),
+        location("room-2", "Panel Room", "panels", 0, "venue-2"),
+        location("room-3", "Staff Room", "staff", 2, "venue-3"),
+        venue("venue-1", "Congress Center", 1, "1 Example Street"),
+        venue("venue-2", "Annex", 0),
+        venue("venue-3", "Staff Building", 2),
         host("host-1", "Zoe Speaker"),
         host("host-2", "Adrian Speaker", avatar),
         host("host-3", "Mallory Staff"),

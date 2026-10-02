@@ -50,8 +50,8 @@ type HeldToken = {
 /**
  * Keys a cached token by what minted it.
  *
- * An operator iterating on configuration changes the edition or the venue far
- * more often than the credentials, so a cache keyed on this survives the whole
+ * An operator iterating on configuration changes the edition far more often
+ * than the credentials, so a cache keyed on this survives the whole
  * setup loop. The secret is part of it because rotating one should discard the
  * token it minted.
  */

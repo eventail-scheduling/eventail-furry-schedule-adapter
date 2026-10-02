@@ -77,7 +77,6 @@ const recordCalls = (store: DocumentStore) => {
 const mapping = {
     locale: new Intl.Locale("en"),
     descriptionSource: "abstract",
-    venue: { id: "main", name: "Test Hotel" },
     sourceName: "eventail",
     appVersion: "1.2.3",
 } satisfies Omit<MapScheduleOptions, "schedule" | "updatedAt">;

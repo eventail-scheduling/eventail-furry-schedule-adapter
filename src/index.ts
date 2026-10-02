@@ -73,7 +73,6 @@ const refresher = createRefresher({
     mapping: {
         locale: appConfig.document.language,
         descriptionSource: appConfig.document.descriptionSource,
-        venue: appConfig.venue,
         sourceName: appConfig.source.name,
         vendorId: appConfig.source.vendorId,
         appVersion: version,

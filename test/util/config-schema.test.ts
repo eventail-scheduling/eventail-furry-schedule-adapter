@@ -14,7 +14,6 @@ const parse = (language: string) =>
             editionId: "01a00548-4998-72d4-ad19-52975e052880",
         },
         document: { language },
-        venue: { id: "main", name: "Test Hotel" },
     });
 
 describe("configSchema language", () => {
@@ -54,7 +53,6 @@ describe("configSchema baseUrl", () => {
                 editionId: "01a00548-4998-72d4-ad19-52975e052880",
             },
             document: { language: "en" },
-            venue: { id: "main", name: "Test Hotel" },
         });
 
         assert.equal(config.data?.eventail.baseUrl, "http://localhost:12001");
@@ -83,7 +81,6 @@ const parseInterval = (pollInterval: string) =>
             pollInterval,
         },
         document: { language: "en" },
-        venue: { id: "main", name: "Test Hotel" },
     });
 
 const parseBaseUrl = (baseUrl: string) =>
@@ -94,7 +91,6 @@ const parseBaseUrl = (baseUrl: string) =>
             editionId: "01a00548-4998-72d4-ad19-52975e052880",
         },
         document: { language: "en" },
-        venue: { id: "main", name: "Test Hotel" },
     });
 
 const parseIssuer = (issuer: string, allowInsecureIssuer?: boolean) =>
@@ -110,7 +106,6 @@ const parseIssuer = (issuer: string, allowInsecureIssuer?: boolean) =>
             },
         },
         document: { language: "en" },
-        venue: { id: "main", name: "Test Hotel" },
     });
 
 describe("configSchema issuer", () => {
@@ -201,7 +196,6 @@ describe("configSchema staleness", () => {
                 editionId: "01a00548-4998-72d4-ad19-52975e052880",
             },
             document: { language: "en", maxStaleness: "PT720H" },
-            venue: { id: "main", name: "Test Hotel" },
         });
 
         assert.equal(config.data?.document.maxStaleness.toString(), "PT720H");

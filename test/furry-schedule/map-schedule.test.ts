@@ -10,7 +10,6 @@ const map = (overrides: Partial<MapScheduleOptions> = {}) =>
         updatedAt: Temporal.Instant.from("2026-05-01T10:00:00Z"),
         locale: new Intl.Locale("en"),
         descriptionSource: "abstract",
-        venue: { id: "main-venue", name: "Test Hotel" },
         sourceName: "eventail",
         appVersion: "1.2.3",
         ...overrides,
@@ -41,13 +40,13 @@ describe("mapSchedule", () => {
             {
                 startTime: "2027-06-01T14:00:00+02:00",
                 endTime: "2027-06-01T15:00:00+02:00",
-                venueId: "main-venue",
+                venueId: "venue-1",
                 roomId: "room-1",
             },
             {
                 startTime: "2027-06-03T14:00:00+02:00",
                 endTime: "2027-06-03T15:00:00+02:00",
-                venueId: "main-venue",
+                venueId: "venue-1",
                 roomId: "room-1",
             },
         ]);
@@ -139,6 +138,36 @@ describe("mapSchedule", () => {
             map().rooms.map((room) => room.id),
             ["room-2", "room-1"],
         );
+    });
+
+    it("carries each room's own venue, and only the venues a kept room sits in", () => {
+        // venue-3 holds room-3 alone, which internal sessions alone use. The
+        // venues come out of the slots, which are in time order, and venue-1 is
+        // used first while sorting last, so neither the filter nor the sort can
+        // pass by accident.
+        assert.deepEqual(
+            map().venues.map((entry) => entry.id),
+            ["venue-2", "venue-1"],
+        );
+        assert.deepEqual(
+            map().rooms.map((room) => [room.id, room.venueId]),
+            [
+                ["room-2", "venue-2"],
+                ["room-1", "venue-1"],
+            ],
+        );
+    });
+
+    it("carries a venue's address only when it has one", () => {
+        const venues = map().venues;
+
+        const congress = venues.find((entry) => entry.id === "venue-1");
+        const annex = venues.find((entry) => entry.id === "venue-2");
+
+        assert.ok(congress);
+        assert.ok(annex);
+        assert.equal(congress.address, "1 Example Street");
+        assert.ok(!("address" in annex));
     });
 
     it("gives a host an image only when they have one", () => {

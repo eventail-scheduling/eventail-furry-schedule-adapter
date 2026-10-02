@@ -11,6 +11,7 @@ import { deserializeScheduleDocument, type ScheduleDocument } from "./schedule-d
  */
 const includePaths = [
     "slots.location",
+    "slots.location.venue",
     "slots.session.hosts",
     "slots.session.track",
     "slots.session.sessionType",

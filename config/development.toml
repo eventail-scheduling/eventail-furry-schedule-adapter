@@ -18,6 +18,3 @@ audience = "eventail"
 [document]
 language = "en"
 
-[venue]
-id = "main"
-name = "Development Venue"

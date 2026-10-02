@@ -93,6 +93,20 @@ export const deserializeScheduleDocument = createDeserializer({
                                 externalKey: z.string().nullable(),
                                 position: z.int(),
                             }),
+                            relationships: {
+                                venue: {
+                                    type: "venue",
+                                    cardinality: "one",
+                                    included: {
+                                        attributesSchema: z.object({
+                                            name: z.string(),
+                                            address: z.string().nullable(),
+                                            externalKey: z.string().nullable(),
+                                            position: z.int(),
+                                        }),
+                                    },
+                                },
+                            },
                         },
                     },
                     session: {

@@ -41,6 +41,7 @@ describe("createEventailClient", () => {
         assert.equal(url.pathname, "/editions/ed-1/schedules/current");
         assert.deepEqual(url.searchParams.get("include")?.split(","), [
             "slots.location",
+            "slots.location.venue",
             "slots.session.hosts",
             "slots.session.track",
             "slots.session.sessionType",

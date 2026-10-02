@@ -240,17 +240,6 @@ export const configSchema = z.object({
             }),
         })
         .meta({ description: "What the emitted document says." }),
-    venue: z
-        .object({
-            id: z.string().min(1),
-            name: z.string().min(1),
-            address: z.string().min(1).optional(),
-        })
-        .meta({
-            description:
-                "The venue every room belongs to. eventail holds no venue of its own, and the " +
-                "schema requires one that each room names.",
-        }),
     source: z
         .object({
             name: z.string().min(1).default("eventail"),

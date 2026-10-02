@@ -13,19 +13,12 @@ import type {
 
 const schemaVersion = "1.0.0";
 
-export type VenueOptions = {
-    id: string;
-    name: string;
-    address?: string | undefined;
-};
-
 export type MapScheduleOptions = {
     schedule: Schedule;
     /** When the content last changed, which is not when the document was last built. */
     updatedAt: Temporal.Instant;
     locale: Intl.Locale;
     descriptionSource: "abstract" | "description";
-    venue: VenueOptions;
     sourceName: string;
     vendorId?: string | undefined;
     appVersion: string;
@@ -72,7 +65,7 @@ const groupSlotsBySession = (slots: Slot[]): Map<string, Slot[]> => {
  * wrong one.
  */
 export const mapSchedule = (options: MapScheduleOptions): FurryScheduleDocument => {
-    const { schedule, locale, venue } = options;
+    const { schedule, locale } = options;
     const localized = (text: string): LocalizedText => ({ [locale.baseName]: text });
     const timeZone = schedule.timeZone ?? schedule.edition.timeZone;
 
@@ -97,7 +90,7 @@ export const mapSchedule = (options: MapScheduleOptions): FurryScheduleDocument 
                 timeSlots: sessionSlots.map((slot) => ({
                     startTime: slot.startsAt.toString({ timeZone }),
                     endTime: slot.endsAt.toString({ timeZone }),
-                    venueId: venue.id,
+                    venueId: slot.location.venue.id,
                     roomId: slot.location.id,
                 })),
             };
@@ -121,7 +114,7 @@ export const mapSchedule = (options: MapScheduleOptions): FurryScheduleDocument 
         .map((location) => ({
             id: location.id,
             name: localized(location.name),
-            venueId: venue.id,
+            venueId: location.venue.id,
         }));
 
     // The schema gives a host one image and calls it a banner. An avatar is
@@ -134,13 +127,13 @@ export const mapSchedule = (options: MapScheduleOptions): FurryScheduleDocument 
             ...(host.avatar && { imageBannerUrl: host.avatar.url }),
         }));
 
-    const venues: Venue[] = [
-        {
+    const venues: Venue[] = byId(slots.map((slot) => slot.location.venue))
+        .toSorted((left, right) => left.position - right.position)
+        .map((venue) => ({
             id: venue.id,
             name: localized(venue.name),
-            ...(venue.address !== undefined && { address: venue.address }),
-        },
-    ];
+            ...(venue.address !== null && { address: venue.address }),
+        }));
 
     return {
         schemaVersion,
