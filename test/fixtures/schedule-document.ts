@@ -6,6 +6,7 @@ type SessionOptions = {
     typeId: string;
     trackId: string | null;
     teaserImage?: Record<string, unknown>;
+    responseIds?: string[];
 };
 
 const slot = (
@@ -50,6 +51,46 @@ const session = (id: string, options: SessionOptions) => ({
         track: {
             data: options.trackId === null ? null : { type: "track", id: options.trackId },
         },
+        responses: {
+            data: (options.responseIds ?? []).map((responseId) => ({
+                type: "response",
+                id: responseId,
+            })),
+        },
+    },
+});
+
+const response = (id: string, customFieldId: string, value: unknown) => ({
+    type: "response",
+    id,
+    attributes: { value },
+    relationships: { customField: { data: { type: "custom_field", id: customFieldId } } },
+});
+
+const choiceCustomField = (
+    id: string,
+    externalKey: string | null,
+    items: { id: string; label: string }[],
+) => ({
+    type: "custom_field",
+    id,
+    attributes: {
+        externalKey,
+        target: "per_proposal",
+        title: "Membership",
+        options: { type: "multiple_choice", items },
+    },
+});
+
+/** A question that offers no options, which every answered question but one is. */
+const textCustomField = (id: string, externalKey: string | null) => ({
+    type: "custom_field",
+    id,
+    attributes: {
+        externalKey,
+        target: "per_proposal",
+        title: "Notes",
+        options: { type: "single_line_text" },
     },
 });
 
@@ -166,6 +207,7 @@ export const scheduleDocument = {
             hostIds: ["host-1", "host-2"],
             typeId: "type-1",
             trackId: "track-1",
+            responseIds: ["response-1", "response-2"],
             teaserImage: {
                 key: "sessions/session-1/teaser.webp",
                 filename: "teaser.webp",
@@ -198,6 +240,14 @@ export const scheduleDocument = {
             typeId: "type-2",
             trackId: "track-1",
         }),
+        response("response-1", "cf-membership", ["level-vip", "level-day"]),
+        response("response-2", "cf-notes", "Gold tier"),
+        textCustomField("cf-notes", "notes"),
+        choiceCustomField("cf-membership", "membership", [
+            { id: "level-standard", label: "Standard" },
+            { id: "level-vip", label: "VIP" },
+            { id: "level-day", label: "Day pass" },
+        ]),
         location("room-1", "Main Stage", "main", 1, "venue-1"),
         location("room-2", "Panel Room", "panels", 0, "venue-2"),
         location("room-3", "Staff Room", "staff", 2, "venue-3"),

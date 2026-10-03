@@ -170,6 +170,83 @@ describe("mapSchedule", () => {
         assert.ok(!("address" in annex));
     });
 
+    describe("membership levels", () => {
+        const mapped = () => map({ membershipCustomFieldKey: "membership" });
+
+        it("names nothing and restricts nothing until a question is configured", () => {
+            const document = map();
+
+            assert.equal(document.membershipLevels, undefined);
+            assert.ok(document.events.every((event) => event.allowedMemberships === undefined));
+        });
+
+        it("catalogs every level the question offers, not only the ones an event names", () => {
+            // session-1 answers two of the three, and a level nobody is on is
+            // still a level the convention sells.
+            assert.deepEqual(mapped().membershipLevels, [
+                { id: "level-standard", name: { en: "Standard" } },
+                { id: "level-vip", name: { en: "VIP" } },
+                { id: "level-day", name: { en: "Day pass" } },
+            ]);
+        });
+
+        it("restricts an event to the levels its session answered", () => {
+            const event = mapped().events.find((candidate) => candidate.id === "session-1");
+
+            assert.deepEqual(event?.allowedMemberships, ["level-vip", "level-day"]);
+        });
+
+        // Absent rather than empty: an empty list reads as open to nobody.
+        it("leaves an event that answered nothing unrestricted", () => {
+            const event = mapped().events.find((candidate) => candidate.id === "session-2");
+
+            assert.ok(event);
+            assert.ok(!("allowedMemberships" in event));
+        });
+
+        // A key can land on a question that offers no options at all, and a
+        // bare answer would otherwise become an id the document never defines.
+        it("names nothing when the key points at a question offering no options", () => {
+            const document = map({ membershipCustomFieldKey: "notes" });
+
+            assert.equal(document.membershipLevels, undefined);
+            assert.ok(document.events.every((event) => event.allowedMemberships === undefined));
+        });
+
+        it("reads a single choice answer as the one level it names", () => {
+            const singleChoice = structuredClone(scheduleDocument) as typeof scheduleDocument;
+            const included = singleChoice.included as Record<string, unknown>[];
+            const answer = included.find((entry) => entry.id === "response-1");
+            const question = included.find((entry) => entry.id === "cf-membership");
+            (answer as { attributes: Record<string, unknown> }).attributes.value = "level-vip";
+            (
+                (question as { attributes: Record<string, unknown> }).attributes as {
+                    options: Record<string, unknown>;
+                }
+            ).options.type = "single_choice";
+
+            const document = mapSchedule({
+                schedule: deserializeScheduleDocument(singleChoice).data,
+                updatedAt: Temporal.Instant.from("2026-05-01T10:00:00Z"),
+                locale: new Intl.Locale("en"),
+                descriptionSource: "abstract",
+                membershipCustomFieldKey: "membership",
+                sourceName: "eventail",
+                appVersion: "1.2.3",
+            });
+            const event = document.events.find((candidate) => candidate.id === "session-1");
+
+            assert.deepEqual(event?.allowedMemberships, ["level-vip"]);
+        });
+
+        it("names nothing when the configured question is not the one asked", () => {
+            const document = map({ membershipCustomFieldKey: "not-a-question" });
+
+            assert.equal(document.membershipLevels, undefined);
+            assert.ok(document.events.every((event) => event.allowedMemberships === undefined));
+        });
+    });
+
     it("gives a host an image only when they have one", () => {
         const hosts = map().hosts;
 

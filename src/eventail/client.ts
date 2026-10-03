@@ -6,8 +6,9 @@ import { deserializeScheduleDocument, type ScheduleDocument } from "./schedule-d
  * Everything the document is built from, in one request.
  *
  * `slots.session.hosts` is a prefix of an allowed path rather than one itself,
- * which the query parser accepts. Naming the full path would also load the
- * answers, which nothing reads yet.
+ * which the query parser accepts. The full path would also load a host's own
+ * answers, which nothing reads; a session's are named in full because the
+ * membership levels come from one.
  */
 const includePaths = [
     "slots.location",
@@ -15,6 +16,7 @@ const includePaths = [
     "slots.session.hosts",
     "slots.session.track",
     "slots.session.sessionType",
+    "slots.session.responses.customField",
 ].join(",");
 
 export type CurrentSchedule =

@@ -5,6 +5,7 @@ import type {
     FurryScheduleDocument,
     Host,
     LocalizedText,
+    MembershipLevel,
     Room,
     ScheduleEvent,
     Track,
@@ -19,6 +20,8 @@ export type MapScheduleOptions = {
     updatedAt: Temporal.Instant;
     locale: Intl.Locale;
     descriptionSource: "abstract" | "description";
+    /** The external key of the choice question the membership levels come from. */
+    membershipCustomFieldKey?: string | undefined;
     sourceName: string;
     vendorId?: string | undefined;
     appVersion: string;
@@ -30,6 +33,22 @@ export type MapScheduleOptions = {
  */
 const isPublic = (session: Session): boolean =>
     !session.sessionType.internal && session.track?.internal !== true;
+
+/**
+ * The answer a session gave to the question memberships come from.
+ *
+ * A question nobody answered is absent rather than empty, and an event open to
+ * every membership says so by naming none, so both come back as no ids.
+ */
+const membershipsOf = (session: Session, key: string | undefined): string[] => {
+    if (key === undefined) {
+        return [];
+    }
+
+    const answer = session.responses.find((response) => response.customField.externalKey === key);
+
+    return answer?.customField.options === null ? [] : (answer?.value ?? []);
+};
 
 const byId = <T extends { id: string }>(items: T[]): T[] => {
     const unique = new Map(items.map((item) => [item.id, item]));
@@ -65,7 +84,7 @@ const groupSlotsBySession = (slots: Slot[]): Map<string, Slot[]> => {
  * wrong one.
  */
 export const mapSchedule = (options: MapScheduleOptions): FurryScheduleDocument => {
-    const { schedule, locale } = options;
+    const { schedule, locale, membershipCustomFieldKey } = options;
     const localized = (text: string): LocalizedText => ({ [locale.baseName]: text });
     const timeZone = schedule.timeZone ?? schedule.edition.timeZone;
 
@@ -78,6 +97,7 @@ export const mapSchedule = (options: MapScheduleOptions): FurryScheduleDocument 
         ([sessionId, sessionSlots]) => {
             const session = sessionSlots[0].session;
             const description = session[options.descriptionSource];
+            const memberships = membershipsOf(session, membershipCustomFieldKey);
 
             return {
                 id: sessionId,
@@ -86,6 +106,7 @@ export const mapSchedule = (options: MapScheduleOptions): FurryScheduleDocument 
                 typeId: session.sessionType.id,
                 trackId: session.track?.id ?? null,
                 hostIds: session.hosts.map((host) => host.id),
+                ...(memberships.length > 0 && { allowedMemberships: memberships }),
                 ...(session.teaserImage && { imageBannerUrl: session.teaserImage.url }),
                 timeSlots: sessionSlots.map((slot) => ({
                     startTime: slot.startsAt.toString({ timeZone }),
@@ -96,6 +117,20 @@ export const mapSchedule = (options: MapScheduleOptions): FurryScheduleDocument 
             };
         },
     );
+
+    /**
+     * Every level the question offers, not only the ones an event names.
+     *
+     * The question reaches the document on an answer, so a question nobody
+     * answered leaves no catalog, and the levels it would have listed restrict
+     * nothing anyway.
+     */
+    const membershipLevels: MembershipLevel[] = (
+        sessions
+            .flatMap((session) => session.responses)
+            .find((response) => response.customField.externalKey === membershipCustomFieldKey)
+            ?.customField.options?.items ?? []
+    ).map((item) => ({ id: item.id, name: localized(item.label) }));
 
     const tracks: Track[] = byId(
         sessions.map((session) => session.track).filter((track) => track !== null),
@@ -149,6 +184,7 @@ export const mapSchedule = (options: MapScheduleOptions): FurryScheduleDocument 
         labels: [],
         venues,
         rooms,
+        ...(membershipLevels.length > 0 && { membershipLevels }),
         hosts,
         events,
     };

@@ -73,6 +73,7 @@ const refresher = createRefresher({
     mapping: {
         locale: appConfig.document.language,
         descriptionSource: appConfig.document.descriptionSource,
+        membershipCustomFieldKey: appConfig.document.membershipCustomFieldKey,
         sourceName: appConfig.source.name,
         vendorId: appConfig.source.vendorId,
         appVersion: version,

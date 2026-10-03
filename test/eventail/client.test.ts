@@ -45,6 +45,7 @@ describe("createEventailClient", () => {
             "slots.session.hosts",
             "slots.session.track",
             "slots.session.sessionType",
+            "slots.session.responses.customField",
         ]);
     });
 

@@ -40,6 +40,41 @@ describe("configSchema language", () => {
     });
 });
 
+describe("configSchema membershipCustomFieldKey", () => {
+    const parseKey = (membershipCustomFieldKey: unknown) =>
+        configSchema.safeParse({
+            eventail: {
+                baseUrl: "http://localhost:12001",
+                auth: {
+                    issuer: "http://localhost:12003/default",
+                    clientId: "c",
+                    clientSecret: "s",
+                },
+                editionId: "01a00548-4998-72d4-ad19-52975e052880",
+            },
+            document: { language: "en", membershipCustomFieldKey },
+        });
+
+    it("takes the external key of the question to read", () => {
+        const result = parseKey("membership");
+
+        assert.equal(result.data?.document.membershipCustomFieldKey, "membership");
+    });
+
+    // Absent and empty are not the same thing: an empty key would match a
+    // question whose external key is null and build a catalog from it.
+    it("refuses an empty key rather than treating it as absent", () => {
+        assert.equal(parseKey("").success, false);
+    });
+
+    it("leaves it out when nothing names a question", () => {
+        const result = parseKey(undefined);
+
+        assert.equal(result.success, true);
+        assert.equal(result.data?.document.membershipCustomFieldKey, undefined);
+    });
+});
+
 describe("configSchema baseUrl", () => {
     it("drops a trailing slash so a path can be appended to it", () => {
         const config = configSchema.safeParse({

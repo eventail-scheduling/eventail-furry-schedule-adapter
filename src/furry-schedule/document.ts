@@ -16,6 +16,7 @@ export type FurryScheduleDocument = {
     rooms: Room[];
     hosts: Host[];
     events: ScheduleEvent[];
+    membershipLevels?: MembershipLevel[];
 };
 
 /** Text keyed by language tag. */
@@ -85,6 +86,12 @@ export type ScheduleEvent = {
     typeId: string;
     trackId: string | null;
     hostIds: string[];
+    allowedMemberships?: string[];
     imageBannerUrl?: string;
     timeSlots: TimeSlot[];
+};
+
+export type MembershipLevel = {
+    id: string;
+    name: LocalizedText;
 };

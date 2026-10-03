@@ -230,6 +230,19 @@ export const configSchema = z.object({
                         "Which session field becomes the event description. Both are optional " +
                         "per edition, so an edition that collects only one has to name it.",
                 }),
+            membershipCustomFieldKey: z
+                .string()
+                .min(1)
+                .optional()
+                .meta({
+                    description:
+                        "The external key of the choice question asked of sessions whose " +
+                        "options are the membership levels, and whose answer says which ones " +
+                        "an event is open to. Single and multiple choice both work. Left " +
+                        "out, the document names no membership levels and restricts no " +
+                        "event, and a key no session question carries does the same.",
+                    examples: ["membership"],
+                }),
             maxStaleness: positiveDurationSchema.default(Temporal.Duration.from("PT12H")).meta({
                 description:
                     "How long the last document keeps being served once refreshing it stops " +

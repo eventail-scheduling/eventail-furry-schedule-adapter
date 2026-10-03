@@ -8,7 +8,47 @@ const imageSchema = z.object({
     processing: z.boolean(),
 });
 
+/**
+ * A choice answer holds the option ids.
+ *
+ * The API types a value as unknown because its shape follows the question, so
+ * the shapes a membership mapping can read are named here and anything else
+ * deserializes to no ids rather than refusing a document over a question
+ * nobody reads.
+ */
+const choiceAnswerSchema = z.unknown().transform((value) => {
+    if (typeof value === "string") {
+        return [value];
+    }
+
+    return Array.isArray(value) && value.every((entry) => typeof entry === "string") ? value : [];
+});
+
 const sessionRelationships = {
+    responses: {
+        type: "response",
+        cardinality: "many",
+        included: {
+            attributesSchema: z.object({ value: choiceAnswerSchema }),
+            relationships: {
+                customField: {
+                    type: "custom_field",
+                    cardinality: "one",
+                    included: {
+                        attributesSchema: z.object({
+                            externalKey: z.string().nullable(),
+                            options: z
+                                .object({
+                                    items: z.array(z.object({ id: z.string(), label: z.string() })),
+                                })
+                                .nullable()
+                                .catch(null),
+                        }),
+                    },
+                },
+            },
+        },
+    },
     hosts: {
         type: "host",
         cardinality: "many",
