@@ -9,26 +9,26 @@
       "node": ">=26"
    },
    "devDependencies": {
-      "@biomejs/biome": "^2.5.14",
-      "@commitlint/cli": "^21.2.3",
-      "@commitlint/config-conventional": "^21.2.3",
+      "@biomejs/biome": "^2.5.15",
+      "@commitlint/cli": "^21.2.4",
+      "@commitlint/config-conventional": "^21.2.4",
       "@tsconfig/node26": "^26.0.1",
-      "@types/node": "^26.6.2",
-      "lefthook": "^2.1.14",
+      "@types/node": "^26.6.5",
+      "lefthook": "^2.2.2",
       "tsx": "^4.23.15",
       "typescript": "^7.0.2"
    },
    "dependencies": {
       "@jsonapi-serde/client": "^1.3.0",
-      "@taxum/core": "^1.3.1",
+      "@taxum/core": "^1.3.2",
       "change-case": "^5.4.4",
       "logforth": "^1.3.0",
       "openid-client": "^6.8.8",
-      "smol-toml": "^1.9.0",
+      "smol-toml": "^1.9.1",
       "stilla": "^2.2.0",
       "temporal-extra": "^1.6.0",
-      "ts-pattern": "^5.9.0",
-      "zod": "^4.6.5",
+      "ts-pattern": "^5.9.2",
+      "zod": "^4.6.7",
       "zod-temporal": "^2.2.1"
    },
    "scripts": {
